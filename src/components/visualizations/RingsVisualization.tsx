@@ -1,16 +1,16 @@
-import { Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useEffect } from 'react';
 import Animated, {
-  Easing,
   interpolate,
   useAnimatedStyle,
   useSharedValue,
+  withRepeat,
   withTiming,
 } from 'react-native-reanimated';
 import { VisualizationProps } from '../../types/breath';
+import { motion, breathScale } from '../../constants/theme';
 
 export function RingsVisualization({
-  phaseLabel,
   currentLevel,
   levelTo,
   phaseRemainingMs,
@@ -24,43 +24,56 @@ export function RingsVisualization({
   useEffect(() => {
     level.value = currentLevel;
     if (isRunning && !reducedMotion) {
-      level.value = withTiming(levelTo, {
-        duration: Math.max(phaseRemainingMs, 100),
-        easing: Easing.inOut(Easing.quad),
-      });
+      const diff = levelTo - currentLevel;
+      const isHold = Math.abs(diff) < motion.holdThreshold;
+
+      if (isHold) {
+        level.value = withRepeat(
+          withTiming(levelTo + motion.holdMicroDrift, {
+            duration: motion.holdDuration,
+            easing: motion.holdEasing,
+          }),
+          -1,
+          true,
+        );
+      } else {
+        const easing = diff > 0 ? motion.inhaleEasing : motion.exhaleEasing;
+        level.value = withTiming(levelTo, {
+          duration: Math.max(phaseRemainingMs, 100),
+          easing,
+        });
+      }
     }
   }, [animationToken, currentLevel, isRunning, level, levelTo, phaseRemainingMs, reducedMotion]);
 
   const ringStyle0 = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(level.value, [0, 1], [0.72, 1.08]) }],
-    opacity: interpolate(level.value, [0, 1], [0.18, 0.34]),
+    transform: [{ scale: interpolate(level.value, [0, 1], [breathScale.ring0ScaleMin, breathScale.ring0ScaleMax]) }],
+    opacity: interpolate(level.value, [0, 1], [breathScale.ringOpacityMin, breathScale.ring0OpacityMax]),
   }));
   const ringStyle1 = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(level.value, [0, 1], [0.77, 1.21]) }],
-    opacity: interpolate(level.value, [0, 1], [0.18, 0.28]),
+    transform: [{ scale: interpolate(level.value, [0, 1], [breathScale.ring1ScaleMin, breathScale.ring1ScaleMax]) }],
+    opacity: interpolate(level.value, [0, 1], [breathScale.ringOpacityMin, breathScale.ring1OpacityMax]),
   }));
   const ringStyle2 = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(level.value, [0, 1], [0.82, 1.34]) }],
-    opacity: interpolate(level.value, [0, 1], [0.18, 0.22]),
+    transform: [{ scale: interpolate(level.value, [0, 1], [breathScale.ring2ScaleMin, breathScale.ring2ScaleMax]) }],
+    opacity: interpolate(level.value, [0, 1], [breathScale.ringOpacityMin, breathScale.ring2OpacityMax]),
   }));
   const coreStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: interpolate(level.value, [0, 1], [0.85, 1.05]) }],
+    transform: [{ scale: interpolate(level.value, [0, 1], [breathScale.coreMin, breathScale.coreMax]) }],
   }));
 
   const ringStyles = [ringStyle0, ringStyle1, ringStyle2];
 
   return (
-    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+    <View style={styles.container}>
       {ringStyles.map((ringStyle, index) => (
         <Animated.View
           key={index}
           style={[
+            styles.ring,
             {
-              position: 'absolute',
               width: 110 + (2 - index) * 42,
               height: 110 + (2 - index) * 42,
-              borderRadius: 999,
-              borderWidth: 1,
               borderColor: palette.accent,
             },
             ringStyle,
@@ -69,20 +82,35 @@ export function RingsVisualization({
       ))}
       <Animated.View
         style={[
+          styles.core,
           {
-            width: 86,
-            height: 86,
-            borderRadius: 999,
             backgroundColor: palette.accentSoft,
-            borderWidth: 1,
             borderColor: palette.border,
-            alignItems: 'center',
-            justifyContent: 'center',
           },
           coreStyle,
-        ]}>
-        <Text style={{ color: palette.text, fontWeight: '700' }}>{phaseLabel}</Text>
-      </Animated.View>
+        ]}
+      />
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  ring: {
+    position: 'absolute',
+    borderRadius: 999,
+    borderWidth: 1,
+  },
+  core: {
+    width: 86,
+    height: 86,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

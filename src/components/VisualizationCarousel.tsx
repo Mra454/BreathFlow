@@ -1,73 +1,95 @@
-import { Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import PagerView from 'react-native-pager-view';
-import { useState } from 'react';
-import { radii, spacing } from '../constants/theme';
+import { useEffect, useRef, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VisualizationProps } from '../types/breath';
 import { OrbVisualization } from './visualizations/OrbVisualization';
 import { RingsVisualization } from './visualizations/RingsVisualization';
 import { SquarePathVisualization } from './visualizations/SquarePathVisualization';
+import { WaveVisualization } from './visualizations/WaveVisualization';
+import { ParticleVisualization } from './visualizations/ParticleVisualization';
+import { TriangleVisualization } from './visualizations/TriangleVisualization';
+import { PillVisualization } from './visualizations/PillVisualization';
 
 const VISUALS = [
-  { key: 'orb', label: 'Orb', Component: OrbVisualization },
-  { key: 'square', label: 'Path', Component: SquarePathVisualization },
-  { key: 'rings', label: 'Rings', Component: RingsVisualization },
+  { key: 'pill', Component: PillVisualization },
+  { key: 'orb', Component: OrbVisualization },
+  { key: 'square', Component: SquarePathVisualization },
+  { key: 'rings', Component: RingsVisualization },
+  { key: 'wave', Component: WaveVisualization },
+  { key: 'particles', Component: ParticleVisualization },
+  { key: 'triangle', Component: TriangleVisualization },
 ] as const;
 
-interface VisualizationCarouselProps extends VisualizationProps {}
+interface VisualizationCarouselProps extends VisualizationProps {
+  patternId: string;
+}
 
-export function VisualizationCarousel(props: VisualizationCarouselProps) {
-  const [page, setPage] = useState(0);
+function storageKey(patternId: string): string {
+  return `viz-pref-${patternId}`;
+}
+
+export function VisualizationCarousel({ patternId, ...props }: VisualizationCarouselProps) {
+  const [initialPage, setInitialPage] = useState<number | null>(null);
+  const pagerRef = useRef<PagerView>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    AsyncStorage.getItem(storageKey(patternId))
+      .then((value) => {
+        if (cancelled) return;
+        if (value !== null) {
+          const index = parseInt(value, 10);
+          if (!isNaN(index) && index >= 0 && index < VISUALS.length) {
+            setInitialPage(index);
+            return;
+          }
+        }
+        setInitialPage(0);
+      })
+      .catch(() => {
+        if (!cancelled) setInitialPage(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [patternId]);
+
+  const handlePageSelected = (position: number) => {
+    AsyncStorage.setItem(storageKey(patternId), String(position)).catch(() => {
+      // Ignore write errors
+    });
+  };
+
+  if (initialPage === null) {
+    return <View style={styles.container} />;
+  }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={styles.container}>
       <PagerView
-        style={{ flex: 1 }}
-        initialPage={0}
-        onPageSelected={(event) => setPage(event.nativeEvent.position)}>
+        ref={pagerRef}
+        style={styles.pager}
+        initialPage={initialPage}
+        onPageSelected={(event) => handlePageSelected(event.nativeEvent.position)}>
         {VISUALS.map(({ key, Component }) => (
-          <View key={key} style={{ flex: 1 }}>
+          <View key={key} style={styles.page}>
             <Component {...props} />
           </View>
         ))}
       </PagerView>
-
-      <View style={{ alignItems: 'center', marginTop: spacing.sm }}>
-        <Text style={{ color: props.palette.subtext, fontSize: 13, marginBottom: spacing.xs }}>
-          Swipe to change the visual style
-        </Text>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-          {VISUALS.map((visual, index) => (
-            <View
-              key={visual.key}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 6,
-                paddingHorizontal: 10,
-                paddingVertical: 6,
-                borderRadius: radii.pill,
-                backgroundColor: index === page ? props.palette.accentSoft : props.palette.surface,
-              }}>
-              <View
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: 999,
-                  backgroundColor: index === page ? props.palette.accent : props.palette.subtext,
-                }}
-              />
-              <Text
-                style={{
-                  color: index === page ? props.palette.text : props.palette.subtext,
-                  fontSize: 12,
-                  fontWeight: '600',
-                }}>
-                {visual.label}
-              </Text>
-            </View>
-          ))}
-        </View>
-      </View>
     </View>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  pager: {
+    flex: 1,
+  },
+  page: {
+    flex: 1,
+  },
+});

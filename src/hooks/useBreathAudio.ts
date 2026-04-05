@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { createAudioPlayer, setAudioModeAsync } from 'expo-audio';
+import { Audio } from 'expo-av';
 import * as Haptics from 'expo-haptics';
 import { BreathEngineSnapshot, ResolvedBreathPattern, SessionSettings } from '../types/breath';
 
@@ -16,7 +16,7 @@ const audioSources = {
 } as const;
 
 type CueName = keyof typeof audioSources;
-type PlayerMap = Partial<Record<CueName, ReturnType<typeof createAudioPlayer>>>;
+type PlayerMap = Partial<Record<CueName, Audio.Sound>>;
 
 function spreadSequence(base: CueName[], count: number): CueName[] {
   if (count <= 0) return [];
@@ -31,7 +31,7 @@ function repeats(cue: CueName, count: number): CueName[] {
   return Array.from({ length: count }, () => cue);
 }
 
-function getCueSequence(pattern: ResolvedBreathPattern, phaseKey: string, durationSec: number): CueName[] {
+function getCueSequence(pattern: ResolvedBreathPattern, phaseKey: string, phaseType: string, durationSec: number): CueName[] {
   const count = Math.max(1, Math.round(durationSec));
   switch (pattern.audioPalette) {
     case 'box': {
@@ -40,9 +40,9 @@ function getCueSequence(pattern: ResolvedBreathPattern, phaseKey: string, durati
       return repeats('click', count);
     }
     case 'coherent':
-      return phaseKey === 'inhale' ? repeats('airyMid', count) : repeats('warmLow', count);
+      return phaseKey === 'inhale' || phaseType === 'inhale' ? repeats('airyMid', count) : repeats('warmLow', count);
     case 'extended':
-      return phaseKey === 'inhale' ? repeats('airyHigh', count) : repeats('warmMid', count);
+      return phaseType === 'inhale' ? repeats('airyHigh', count) : repeats('warmMid', count);
     case 'sigh': {
       if (phaseKey === 'inhale-primary') return repeats('airyMid', count);
       if (phaseKey === 'inhale-topup') return repeats('airyHigh', count);
@@ -53,8 +53,27 @@ function getCueSequence(pattern: ResolvedBreathPattern, phaseKey: string, durati
       if (phaseKey === 'hold-top') return repeats('click', count);
       return spreadSequence(['warmMid', 'warmLow'], count);
     }
+    case 'energy': {
+      // Rest phase with key 'rest' (Kapalabhati rest): silent
+      if (phaseKey === 'rest') return [];
+      // Inhale/exhale: click
+      if (phaseType === 'inhale' || phaseType === 'exhale') return repeats('click', count);
+      // Hold (phaseType 'hold'): warmLow spread
+      if (phaseType === 'hold') return spreadSequence(['warmLow'], count);
+      // hold-empty (key 'hold-empty', phaseType 'rest'): sparse warmLow at 1 per 15s
+      if (phaseKey === 'hold-empty') {
+        const sparseCount = Math.max(1, Math.floor(durationSec / 15));
+        return repeats('warmLow', sparseCount);
+      }
+      return repeats('click', count);
+    }
+    case 'bee': {
+      if (phaseType === 'inhale' || phaseType === 'inhale2') return repeats('airyHigh', count);
+      // Exhale (hum): warmLow spread at 1 per second
+      return repeats('warmLow', count);
+    }
     default:
-      return phaseKey === 'inhale' ? repeats('airyMid', count) : repeats('warmLow', count);
+      return phaseType === 'inhale' ? repeats('airyMid', count) : repeats('warmLow', count);
   }
 }
 
@@ -65,80 +84,101 @@ export function useBreathAudio(
 ) {
   const playersRef = useRef<PlayerMap>({});
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const firedPhasesRef = useRef<Set<string>>(new Set());
+
+  const currentPhase = snapshot.currentPhase;
+  const isRapidPhase = currentPhase.durationSec < 1.5;
 
   const phaseSequence = useMemo(
     () =>
       getCueSequence(
         pattern,
-        snapshot.currentPhase.key,
-        snapshot.currentPhase.durationSec,
+        currentPhase.key,
+        currentPhase.phaseType,
+        currentPhase.durationSec,
       ),
-    [pattern, snapshot.currentPhase.durationSec, snapshot.currentPhase.key],
+    [pattern, currentPhase.durationSec, currentPhase.key, currentPhase.phaseType],
   );
 
   useEffect(() => {
     let mounted = true;
-    setAudioModeAsync({
-      playsInSilentMode: true,
-      interruptionMode: 'mixWithOthers',
-      shouldPlayInBackground: false,
+
+    Audio.setAudioModeAsync({
+      playsInSilentModeIOS: true,
+      staysActiveInBackground: false,
     }).catch(() => undefined);
 
+    // Load all sounds
     const players: PlayerMap = {};
-    (Object.keys(audioSources) as CueName[]).forEach((key) => {
-      const player = createAudioPlayer(audioSources[key]);
-      player.volume = settings.soundEnabled ? settings.volume : 0;
-      players[key] = player;
-    });
-
-    if (mounted) playersRef.current = players;
+    const loadAll = async () => {
+      for (const key of Object.keys(audioSources) as CueName[]) {
+        try {
+          const { sound } = await Audio.Sound.createAsync(audioSources[key], {
+            volume: settings.soundEnabled ? settings.volume : 0,
+          });
+          if (mounted) {
+            players[key] = sound;
+          } else {
+            sound.unloadAsync();
+          }
+        } catch (_e) {
+          // ignore load errors
+        }
+      }
+      if (mounted) playersRef.current = players;
+    };
+    loadAll();
 
     return () => {
       mounted = false;
       timersRef.current.forEach(clearTimeout);
       timersRef.current = [];
-      Object.values(players).forEach((player) => player?.remove());
+      Object.values(players).forEach((sound) => sound?.unloadAsync());
       playersRef.current = {};
     };
   }, []);
 
   useEffect(() => {
-    Object.values(playersRef.current).forEach((player) => {
-      if (player) {
-        player.volume = settings.soundEnabled ? settings.volume : 0;
-      }
+    const vol = settings.soundEnabled ? settings.volume : 0;
+    Object.values(playersRef.current).forEach((sound) => {
+      sound?.setVolumeAsync(vol).catch(() => undefined);
     });
   }, [settings.soundEnabled, settings.volume]);
 
+  // Clear firedPhases on session reset (idle/completed status)
   useEffect(() => {
-    timersRef.current.forEach(clearTimeout);
-    timersRef.current = [];
-    if (snapshot.status !== 'running') return;
-    if (settings.hapticsEnabled) Haptics.selectionAsync().catch(() => undefined);
-    if (!settings.soundEnabled) return;
+    if (snapshot.status === 'idle' || snapshot.status === 'completed') {
+      firedPhasesRef.current.clear();
+    }
+  }, [snapshot.status]);
 
-    const nextBeat = Math.ceil(snapshot.phaseElapsedMs / 1000);
-    phaseSequence.forEach((cue, beatIndex) => {
-      if (beatIndex < nextBeat) return;
-      const delay = Math.max(0, beatIndex * 1000 - snapshot.phaseElapsedMs);
-      const timer = setTimeout(() => {
-        const player = playersRef.current[cue];
-        if (!player) return;
-        player.seekTo(0);
-        player.play();
-      }, delay);
-      timersRef.current.push(timer);
-    });
-    return () => {
-      timersRef.current.forEach(clearTimeout);
-      timersRef.current = [];
-    };
-  }, [
-    phaseSequence,
-    settings.hapticsEnabled,
-    settings.soundEnabled,
-    snapshot.phaseElapsedMs,
-    snapshot.phaseInstanceKey,
-    snapshot.status,
-  ]);
+  // Clear firedPhases when a non-rapid phase plays
+  useEffect(() => {
+    if (!isRapidPhase && firedPhasesRef.current.size > 0) {
+      firedPhasesRef.current.clear();
+    }
+  }, [isRapidPhase, snapshot.phaseInstanceKey]);
+
+  // Haptics — only on phase transitions, not every tick
+  const lastHapticPhaseRef = useRef('');
+  useEffect(() => {
+    if (snapshot.status === 'running' && settings.hapticsEnabled && snapshot.phaseInstanceKey !== lastHapticPhaseRef.current) {
+      lastHapticPhaseRef.current = snapshot.phaseInstanceKey;
+      Haptics.selectionAsync().catch(() => undefined);
+    }
+  }, [snapshot.phaseInstanceKey, snapshot.status, settings.hapticsEnabled]);
+
+  // Play one click at each phase transition only
+  const lastPlayedPhaseRef = useRef('');
+  useEffect(() => {
+    if (snapshot.status !== 'running') return;
+    if (!settings.soundEnabled) return;
+    if (snapshot.phaseInstanceKey === lastPlayedPhaseRef.current) return;
+
+    lastPlayedPhaseRef.current = snapshot.phaseInstanceKey;
+    const player = playersRef.current['click'];
+    if (player) {
+      player.setPositionAsync(0).then(() => player.playAsync()).catch(() => undefined);
+    }
+  }, [snapshot.phaseInstanceKey, snapshot.status, settings.soundEnabled]);
 }

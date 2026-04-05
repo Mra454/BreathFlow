@@ -1,6 +1,6 @@
-import { StyleSheet, View } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import { useEffect } from 'react';
-import Svg, { Circle, Rect } from 'react-native-svg';
+import Svg, { Circle, Polygon } from 'react-native-svg';
 import Animated, {
   Easing,
   interpolate,
@@ -15,29 +15,44 @@ import { motion, breathScale } from '../../constants/theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle as any);
 
-function pointFromSquareProgress(progress: number, size: number, inset: number) {
-  'worklet';
-  const xMin = inset;
-  const xMax = size - inset;
-  const yMin = inset;
-  const yMax = size - inset;
-  const side = xMax - xMin;
-  const perimeter = side * 4;
-  const distance = progress * perimeter;
+const SIZE = 248;
+const CENTER = SIZE / 2;
+const RADIUS = 100;
 
-  if (distance <= side) {
-    return { x: xMin + distance, y: yMin };
+const V0 = { x: CENTER + RADIUS * Math.cos(-Math.PI / 2), y: CENTER + RADIUS * Math.sin(-Math.PI / 2) };
+const V1 = { x: CENTER + RADIUS * Math.cos(Math.PI / 6), y: CENTER + RADIUS * Math.sin(Math.PI / 6) };
+const V2 = { x: CENTER + RADIUS * Math.cos((5 * Math.PI) / 6), y: CENTER + RADIUS * Math.sin((5 * Math.PI) / 6) };
+
+const TRIANGLE_POINTS = `${V0.x},${V0.y} ${V1.x},${V1.y} ${V2.x},${V2.y}`;
+
+function pointFromTriangleProgress(progress: number): { x: number; y: number } {
+  'worklet';
+  const p = ((progress % 1) + 1) % 1;
+  const third = 1 / 3;
+
+  let fromX: number, fromY: number, toX: number, toY: number, t: number;
+
+  if (p < third) {
+    t = p / third;
+    fromX = V0.x; fromY = V0.y;
+    toX = V1.x; toY = V1.y;
+  } else if (p < third * 2) {
+    t = (p - third) / third;
+    fromX = V1.x; fromY = V1.y;
+    toX = V2.x; toY = V2.y;
+  } else {
+    t = (p - third * 2) / third;
+    fromX = V2.x; fromY = V2.y;
+    toX = V0.x; toY = V0.y;
   }
-  if (distance <= side * 2) {
-    return { x: xMax, y: yMin + (distance - side) };
-  }
-  if (distance <= side * 3) {
-    return { x: xMax - (distance - side * 2), y: yMax };
-  }
-  return { x: xMin, y: yMax - (distance - side * 3) };
+
+  return {
+    x: fromX + (toX - fromX) * t,
+    y: fromY + (toY - fromY) * t,
+  };
 }
 
-export function SquarePathVisualization({
+export function TriangleVisualization({
   currentLevel,
   levelTo,
   phaseRemainingMs,
@@ -49,8 +64,6 @@ export function SquarePathVisualization({
 }: VisualizationProps) {
   const level = useSharedValue(currentLevel);
   const progress = useSharedValue(cycleProgress ?? 0);
-  const size = 248;
-  const inset = 34;
 
   useEffect(() => {
     progress.value = reducedMotion
@@ -66,10 +79,7 @@ export function SquarePathVisualization({
 
       if (isHold) {
         level.value = withRepeat(
-          withTiming(levelTo + motion.holdMicroDrift, {
-            duration: motion.holdDuration,
-            easing: motion.holdEasing,
-          }),
+          withTiming(levelTo + motion.holdMicroDrift, { duration: motion.holdDuration, easing: motion.holdEasing }),
           -1,
           true,
         );
@@ -84,43 +94,37 @@ export function SquarePathVisualization({
   }, [animationToken, currentLevel, isRunning, level, levelTo, phaseRemainingMs, reducedMotion]);
 
   const dotProps = useAnimatedProps(() => {
-    const point = pointFromSquareProgress(progress.value, size, inset);
+    const point = pointFromTriangleProgress(progress.value);
     return {
       cx: point.x,
       cy: point.y,
     } as any;
   });
 
-  const innerSquareStyle = useAnimatedStyle(() => ({
+  const innerTriangleStyle = useAnimatedStyle(() => ({
     transform: [{ scale: interpolate(level.value, [0, 1], [breathScale.squareMin, breathScale.squareMax]) }],
     opacity: interpolate(level.value, [0, 1], [breathScale.squareOpacityMin, breathScale.squareOpacityMax]),
   }));
 
   return (
     <View style={styles.container}>
-      <Svg width={size} height={size}>
-        <Rect
-          x={inset}
-          y={inset}
-          width={size - inset * 2}
-          height={size - inset * 2}
-          rx={18}
+      <Svg width={SIZE} height={SIZE}>
+        <Polygon
+          points={TRIANGLE_POINTS}
           stroke={palette.accent}
           strokeWidth={2}
           fill="transparent"
           opacity={0.88}
+          strokeLinejoin="round"
         />
         {/* @ts-expect-error animated SVG prop types */}
         <AnimatedCircle animatedProps={dotProps} r={8} fill={palette.accent2} />
       </Svg>
       <Animated.View
         style={[
-          styles.innerSquare,
-          {
-            backgroundColor: palette.accentSoft,
-            borderColor: palette.border,
-          },
-          innerSquareStyle,
+          styles.innerShape,
+          { backgroundColor: palette.accentSoft, borderColor: palette.border },
+          innerTriangleStyle,
         ]}
       />
     </View>
@@ -133,10 +137,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  innerSquare: {
+  innerShape: {
     position: 'absolute',
-    width: 112,
-    height: 112,
+    width: 100,
+    height: 100,
     borderRadius: 24,
     borderWidth: 1,
     alignItems: 'center',

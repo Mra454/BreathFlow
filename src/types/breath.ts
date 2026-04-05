@@ -1,5 +1,9 @@
 export type PhaseType = 'inhale' | 'inhale2' | 'exhale' | 'hold' | 'rest';
 
+export type BreathIntent = 'Focus' | 'Calm' | 'Sleep' | 'Reset' | 'Energy' | 'Balance';
+export type SafetyTier = 'green' | 'yellow' | 'red';
+export type PatternCategory = 'calm-sleep' | 'focus-performance' | 'energy-activation' | 'balance-wellness' | 'therapeutic' | 'quick-reset';
+
 export interface BreathPhase {
   key: string;
   label: string;
@@ -7,25 +11,30 @@ export interface BreathPhase {
   phaseType: PhaseType;
   levelFrom: number;
   levelTo: number;
+  skippable?: boolean;
 }
 
 export interface ResolvedBreathPhase extends BreathPhase {
   durationMs: number;
 }
 
-export type AudioPalette = 'box' | 'coherent' | 'extended' | 'sigh' | 'sleep' | 'generic';
+export type AudioPalette = 'box' | 'coherent' | 'extended' | 'sigh' | 'sleep' | 'generic' | 'energy' | 'bee';
 
 export interface BreathPattern {
   id: string;
   name: string;
   tagline: string;
   purpose: string;
-  intent: string;
+  intent: BreathIntent;
   cadenceLabel: string;
   defaultSessionMinutes: number;
   descriptor: string;
   safetyNote?: string;
   audioPalette: AudioPalette;
+  safetyTier: SafetyTier;
+  category: PatternCategory;
+  beginnerOverrides?: Record<string, number>;
+  beginnerCycleCount?: number;
   phases: BreathPhase[];
 }
 
@@ -63,6 +72,7 @@ export interface BreathEngineSnapshot {
   animationToken: number;
   phaseInstanceKey: string;
   currentPhase: ResolvedBreathPhase;
+  currentPhaseSkippable: boolean;
 }
 
 export interface ResolvedPalette {
@@ -80,6 +90,8 @@ export interface ResolvedPalette {
   accent2: string;
   orbGlow: string;
   orbCore: string;
+  buttonText: string;
+  buttonTextInverse: string;
 }
 
 export interface VisualizationProps {

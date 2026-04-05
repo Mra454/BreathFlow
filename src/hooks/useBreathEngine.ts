@@ -190,6 +190,45 @@ export function useBreathEngine(pattern: ResolvedBreathPattern) {
     requestAnimationFrame(() => start());
   }, [reset, start]);
 
+  const skipPhase = useCallback(() => {
+    if (status !== 'running') return;
+    const currentPhaseDef = phases[currentPhaseIndexRef.current];
+    if (!currentPhaseDef || !(currentPhaseDef.skippable ?? false)) return;
+
+    // Clear the existing phase timeout
+    if (phaseTimeoutRef.current) {
+      clearTimeout(phaseTimeoutRef.current);
+      phaseTimeoutRef.current = null;
+    }
+
+    // Accumulate session time for the portion of this phase that elapsed
+    const now = Date.now();
+    const sessionDelta = sessionStartedAtRef.current ? now - sessionStartedAtRef.current : 0;
+    accumulatedSessionElapsedRef.current = Math.min(
+      pattern.sessionLengthMs,
+      accumulatedSessionElapsedRef.current + sessionDelta,
+    );
+    sessionStartedAtRef.current = now;
+
+    // Advance to next phase (same logic as schedulePhaseTimeout callback)
+    const nextPhaseIndex =
+      currentPhaseIndexRef.current === phases.length - 1 ? 0 : currentPhaseIndexRef.current + 1;
+    const nextCycleIndex =
+      nextPhaseIndex === 0 ? currentCycleIndexRef.current + 1 : currentCycleIndexRef.current;
+
+    currentPhaseIndexRef.current = nextPhaseIndex;
+    currentCycleIndexRef.current = nextCycleIndex;
+    phaseStartedAtRef.current = now;
+    accumulatedPhaseElapsedRef.current = 0;
+
+    setPhaseIndex(nextPhaseIndex);
+    setCycleIndex(nextCycleIndex);
+    setPhaseElapsedMs(0);
+    setAnimationToken((token) => token + 1);
+
+    schedulePhaseTimeout(phases[nextPhaseIndex].durationMs);
+  }, [pattern.sessionLengthMs, phases, schedulePhaseTimeout, status]);
+
   useEffect(() => {
     reset();
   }, [pattern.id, pattern.sessionLengthMs, pattern.cycleDurationMs, reset]);
@@ -221,6 +260,7 @@ export function useBreathEngine(pattern: ResolvedBreathPattern) {
       animationToken,
       phaseInstanceKey: `${cycleIndex}-${phaseIndex}-${animationToken}`,
       currentPhase,
+      currentPhaseSkippable: currentPhase.skippable ?? false,
     };
   }, [
     animationToken,
@@ -243,6 +283,7 @@ export function useBreathEngine(pattern: ResolvedBreathPattern) {
       resume,
       restart,
       reset,
+      skipPhase,
     },
   };
 }

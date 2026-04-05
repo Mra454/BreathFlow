@@ -1,7 +1,18 @@
-import { Modal, Pressable, ScrollView, Switch, Text, View } from 'react-native';
-import { useEffect, useState } from 'react';
+import {
+  Dimensions,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  Text,
+  View,
+} from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
 import { BreathPattern, ResolvedPalette, SessionSettings } from '../types/breath';
-import { radii, spacing } from '../constants/theme';
+import { radii, spacing, typography } from '../constants/theme';
+
+const SCREEN_HEIGHT = Dimensions.get('window').height;
 
 interface SettingsModalProps {
   visible: boolean;
@@ -24,52 +35,63 @@ interface StepperRowProps {
 }
 
 function StepperRow({ label, value, min, max, step = 1, palette, suffix = '', onChange }: StepperRowProps) {
+  const displayValue = step < 1 ? value.toFixed(1) : String(value);
   return (
-    <View
-      style={{
-        paddingVertical: spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-      }}>
-      <Text style={{ color: palette.text, fontSize: 15, fontWeight: '600', marginBottom: spacing.xs }}>
-        {label}
-      </Text>
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Text style={{ color: palette.subtext }}>{value}{suffix}</Text>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+    <View style={[stepperStyles.row, { borderBottomColor: palette.border }]}>
+      <Text style={[stepperStyles.label, { color: palette.text }]}>{label}</Text>
+      <View style={stepperStyles.controls}>
+        <Text style={{ color: palette.subtext, fontSize: 14 }}>
+          {displayValue}{suffix}
+        </Text>
+        <View style={stepperStyles.buttons}>
           <Pressable
-            onPress={() => onChange(Math.max(min, value - step))}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: radii.pill,
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor: palette.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Text style={{ color: palette.text, fontSize: 20, fontWeight: '700' }}>−</Text>
+            onPress={() => onChange(Math.max(min, +(value - step).toFixed(2)))}
+            style={[stepperStyles.button, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[stepperStyles.buttonText, { color: palette.text }]}>-</Text>
           </Pressable>
           <Pressable
-            onPress={() => onChange(Math.min(max, value + step))}
-            style={{
-              width: 40,
-              height: 40,
-              borderRadius: radii.pill,
-              backgroundColor: palette.surface,
-              borderWidth: 1,
-              borderColor: palette.border,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-            <Text style={{ color: palette.text, fontSize: 20, fontWeight: '700' }}>+</Text>
+            onPress={() => onChange(Math.min(max, +(value + step).toFixed(2)))}
+            style={[stepperStyles.button, { backgroundColor: palette.surface, borderColor: palette.border }]}>
+            <Text style={[stepperStyles.buttonText, { color: palette.text }]}>+</Text>
           </Pressable>
         </View>
       </View>
     </View>
   );
 }
+
+const stepperStyles = StyleSheet.create({
+  row: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  label: {
+    fontSize: 15,
+    ...typography.medium,
+    marginBottom: spacing.xs,
+  },
+  controls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  buttons: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  button: {
+    width: 40,
+    height: 40,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonText: {
+    fontSize: 20,
+    ...typography.semibold,
+  },
+});
 
 interface ToggleRowProps {
   label: string;
@@ -81,22 +103,11 @@ interface ToggleRowProps {
 
 function ToggleRow({ label, description, value, palette, onChange }: ToggleRowProps) {
   return (
-    <View
-      style={{
-        paddingVertical: spacing.sm,
-        borderBottomWidth: 1,
-        borderBottomColor: palette.border,
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        gap: spacing.sm,
-      }}>
-      <View style={{ flex: 1 }}>
-        <Text style={{ color: palette.text, fontSize: 15, fontWeight: '600' }}>{label}</Text>
+    <View style={[toggleStyles.row, { borderBottomColor: palette.border }]}>
+      <View style={toggleStyles.textCol}>
+        <Text style={[toggleStyles.label, { color: palette.text }]}>{label}</Text>
         {description ? (
-          <Text style={{ color: palette.subtext, fontSize: 13, marginTop: 4, lineHeight: 18 }}>
-            {description}
-          </Text>
+          <Text style={[toggleStyles.desc, { color: palette.subtext }]}>{description}</Text>
         ) : null}
       </View>
       <Switch value={value} onValueChange={onChange} />
@@ -104,161 +115,342 @@ function ToggleRow({ label, description, value, palette, onChange }: ToggleRowPr
   );
 }
 
+const toggleStyles = StyleSheet.create({
+  row: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  textCol: {
+    flex: 1,
+  },
+  label: {
+    fontSize: 15,
+    ...typography.medium,
+  },
+  desc: {
+    fontSize: 13,
+    ...typography.regular,
+    marginTop: spacing.xs,
+    lineHeight: 18,
+  },
+});
+
+interface UniquePhaseEntry {
+  key: string;
+  label: string;
+  durationSec: number;
+}
+
+function generateDurationChips(defaultMinutes: number): number[] {
+  const raw = [defaultMinutes - 1, defaultMinutes, defaultMinutes + 1, defaultMinutes * 2];
+  const filtered = raw.filter((v) => v >= 1 && v <= 20);
+  return [...new Set(filtered)].sort((a, b) => a - b);
+}
+
 export function SettingsModal({ visible, pattern, value, palette, onClose, onApply }: SettingsModalProps) {
   const [draft, setDraft] = useState(value);
+  const [moreExpanded, setMoreExpanded] = useState(false);
+  const [timingExpanded, setTimingExpanded] = useState(false);
 
   useEffect(() => {
     setDraft(value);
+    setMoreExpanded(false);
+    setTimingExpanded(false);
   }, [value, visible]);
 
+  const durationChips = useMemo(
+    () => generateDurationChips(pattern.defaultSessionMinutes),
+    [pattern.defaultSessionMinutes],
+  );
+
+  const uniquePhases = useMemo<UniquePhaseEntry[]>(() => {
+    const seen = new Set<string>();
+    const result: UniquePhaseEntry[] = [];
+    for (const phase of pattern.phases) {
+      if (!seen.has(phase.key)) {
+        seen.add(phase.key);
+        result.push({ key: phase.key, label: phase.label, durationSec: phase.durationSec });
+      }
+    }
+    return result;
+  }, [pattern.phases]);
+
+  const hasSubSecond = useMemo(
+    () => uniquePhases.some((p) => p.durationSec % 1 !== 0),
+    [uniquePhases],
+  );
+  const stepSize = hasSubSecond ? 0.5 : 1;
+
+  const hasRapidPhases = useMemo(
+    () => pattern.phases.some((p) => p.durationSec < 1),
+    [pattern.phases],
+  );
+  const minValue = hasRapidPhases ? 0.5 : 1;
+
+  const volumeSteps = [0, 25, 50, 75, 100];
+
+  const handleDismiss = () => {
+    onApply(draft);
+  };
+
   return (
-    <Modal visible={visible} animationType="slide" transparent>
-      <View
-        style={{
-          flex: 1,
-          backgroundColor: palette.overlay,
-          justifyContent: 'flex-end',
-        }}>
-        <View
-          style={{
-            maxHeight: '88%',
-            borderTopLeftRadius: radii.lg,
-            borderTopRightRadius: radii.lg,
-            backgroundColor: palette.surfaceStrong,
-            borderWidth: 1,
-            borderColor: palette.border,
-            paddingTop: spacing.lg,
-          }}>
-          <View
-            style={{
-              flexDirection: 'row',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              paddingHorizontal: spacing.lg,
-              marginBottom: spacing.md,
-            }}>
-            <View>
-              <Text style={{ color: palette.text, fontSize: 22, fontWeight: '700' }}>Session settings</Text>
-              <Text style={{ color: palette.subtext, marginTop: 4 }}>{pattern.name}</Text>
-            </View>
-            <Pressable onPress={onClose} accessibilityRole="button" accessibilityLabel="Close settings">
-              <Text style={{ color: palette.accent, fontWeight: '700' }}>Close</Text>
-            </Pressable>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={handleDismiss}>
+      <Pressable style={styles.overlay} onPress={handleDismiss}>
+        <Pressable
+          style={[
+            styles.sheet,
+            {
+              backgroundColor: palette.surface,
+              maxHeight: SCREEN_HEIGHT * 0.6,
+            },
+          ]}
+          onPress={() => {}}>
+          <View style={styles.dragHandleContainer}>
+            <View style={[styles.dragHandle, { backgroundColor: palette.subtext }]} />
           </View>
 
-          <ScrollView contentContainerStyle={{ paddingHorizontal: spacing.lg, paddingBottom: spacing.xl }}>
-            <StepperRow
-              label="Session length"
-              value={draft.sessionMinutes}
-              min={1}
-              max={20}
-              palette={palette}
-              suffix=" min"
-              onChange={(sessionMinutes) => setDraft((current) => ({ ...current, sessionMinutes }))}
-            />
-            <StepperRow
-              label="Volume"
-              value={Math.round(draft.volume * 100)}
-              min={0}
-              max={100}
-              step={5}
-              palette={palette}
-              suffix="%"
-              onChange={(next) => setDraft((current) => ({ ...current, volume: next / 100 }))}
-            />
+          <ScrollView contentContainerStyle={styles.scrollContent} bounces={false}>
+            {/* Session length chips */}
+            <Text style={[styles.sectionLabel, { color: palette.text }]}>Session length</Text>
+            <View style={styles.chipRow}>
+              {durationChips.map((min) => {
+                const selected = draft.sessionMinutes === min;
+                return (
+                  <Pressable
+                    key={min}
+                    accessibilityRole="radio"
+                    accessibilityState={{ selected }}
+                    onPress={() => setDraft((c) => ({ ...c, sessionMinutes: min }))}
+                    style={[
+                      styles.chip,
+                      {
+                        backgroundColor: selected ? palette.accent : palette.surface,
+                        borderColor: selected ? palette.accent : palette.border,
+                      },
+                    ]}>
+                    <Text
+                      style={[
+                        styles.chipText,
+                        {
+                          color: selected
+                            ? palette.buttonText
+                            : palette.subtext,
+                        },
+                      ]}>
+                      {min} min
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+
+            {/* Sound toggle */}
             <ToggleRow
               label="Sound"
-              description="Keep the cues subtle. Muting only disables sounds, not the timing engine."
               value={draft.soundEnabled}
               palette={palette}
-              onChange={(soundEnabled) => setDraft((current) => ({ ...current, soundEnabled }))}
-            />
-            <ToggleRow
-              label="Haptics"
-              description="A light tactile cue on phase changes when supported."
-              value={draft.hapticsEnabled}
-              palette={palette}
-              onChange={(hapticsEnabled) => setDraft((current) => ({ ...current, hapticsEnabled }))}
-            />
-            <ToggleRow
-              label="High contrast"
-              description="Increase contrast for text, controls, and progress bars."
-              value={draft.highContrast}
-              palette={palette}
-              onChange={(highContrast) => setDraft((current) => ({ ...current, highContrast }))}
-            />
-            <ToggleRow
-              label="Beginner mode"
-              description="Keeps the interface simpler and nudges you toward gentler defaults."
-              value={draft.beginnerMode}
-              palette={palette}
-              onChange={(beginnerMode) => setDraft((current) => ({ ...current, beginnerMode }))}
-            />
-            <ToggleRow
-              label="Mist theme"
-              description="Switch from the default dark session palette to a brighter calming palette."
-              value={draft.themeMode === 'mist'}
-              palette={palette}
-              onChange={(isMist) =>
-                setDraft((current) => ({
-                  ...current,
-                  themeMode: isMist ? 'mist' : 'night',
-                }))
-              }
+              onChange={(soundEnabled) => setDraft((c) => ({ ...c, soundEnabled }))}
             />
 
-            <Text
-              style={{
-                color: palette.text,
-                fontSize: 18,
-                fontWeight: '700',
-                marginTop: spacing.lg,
-                marginBottom: spacing.xs,
-              }}>
-              Pattern timing
-            </Text>
-            <Text style={{ color: palette.subtext, lineHeight: 20, marginBottom: spacing.sm }}>
-              Any timing changes apply the next time you start the session.
-            </Text>
+            {/* Volume stepper (only when sound on) */}
+            {draft.soundEnabled && (
+              <View style={[styles.volumeRow, { borderBottomColor: palette.border }]}>
+                <Text style={[styles.volumeLabel, { color: palette.text }]}>Volume</Text>
+                <View style={styles.volumeChipRow}>
+                  {volumeSteps.map((pct) => {
+                    const selected = Math.round(draft.volume * 100) === pct;
+                    return (
+                      <Pressable
+                        key={pct}
+                        onPress={() => setDraft((c) => ({ ...c, volume: pct / 100 }))}
+                        style={[
+                          styles.volumeChip,
+                          {
+                            backgroundColor: selected ? palette.accent : palette.surface,
+                            borderColor: selected ? palette.accent : palette.border,
+                          },
+                        ]}>
+                        <Text
+                          style={[
+                            styles.volumeChipText,
+                            {
+                              color: selected
+                                ? palette.buttonText
+                                : palette.subtext,
+                            },
+                          ]}>
+                          {pct}%
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
 
-            {pattern.phases.map((phase) => (
-              <StepperRow
-                key={phase.key}
-                label={phase.label}
-                value={draft.phaseDurations[phase.key] ?? phase.durationSec}
-                min={1}
-                max={12}
-                palette={palette}
-                suffix=" sec"
-                onChange={(nextValue) =>
-                  setDraft((current) => ({
-                    ...current,
-                    phaseDurations: {
-                      ...current.phaseDurations,
-                      [phase.key]: nextValue,
-                    },
-                  }))
-                }
-              />
-            ))}
+            {/* More options expandable */}
+            <Pressable
+              onPress={() => setMoreExpanded((v) => !v)}
+              style={styles.expandableHeader}>
+              <Text style={[styles.expandableText, { color: palette.accent }]}>
+                {moreExpanded ? 'Less options' : 'More options'}
+              </Text>
+            </Pressable>
 
-            <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
-              <Pressable
-                onPress={() => onApply(draft)}
-                style={{
-                  backgroundColor: palette.accent,
-                  borderRadius: radii.pill,
-                  paddingVertical: 15,
-                  alignItems: 'center',
-                }}>
-                <Text style={{ color: palette.name === 'mist' ? '#FFFFFF' : '#07111F', fontWeight: '700' }}>
-                  Apply settings
-                </Text>
-              </Pressable>
-            </View>
+            {moreExpanded && (
+              <View>
+                <ToggleRow
+                  label="Haptics"
+                  description="A light tactile cue on phase changes."
+                  value={draft.hapticsEnabled}
+                  palette={palette}
+                  onChange={(hapticsEnabled) => setDraft((c) => ({ ...c, hapticsEnabled }))}
+                />
+                <ToggleRow
+                  label="Beginner mode"
+                  description="Gentler pace for advanced patterns."
+                  value={draft.beginnerMode}
+                  palette={palette}
+                  onChange={(beginnerMode) => setDraft((c) => ({ ...c, beginnerMode }))}
+                />
+                <ToggleRow
+                  label="Mist theme"
+                  description="Switch to a brighter calming palette."
+                  value={draft.themeMode === 'mist'}
+                  palette={palette}
+                  onChange={(isMist) =>
+                    setDraft((c) => ({
+                      ...c,
+                      themeMode: isMist ? 'mist' : 'night',
+                    }))
+                  }
+                />
+              </View>
+            )}
+
+            {/* Timing expandable */}
+            <Pressable
+              onPress={() => setTimingExpanded((v) => !v)}
+              style={styles.expandableHeader}>
+              <Text style={[styles.expandableText, { color: palette.accent }]}>
+                {timingExpanded ? 'Hide timing' : 'Timing'}
+              </Text>
+            </Pressable>
+
+            {timingExpanded && (
+              <View>
+                {uniquePhases.map((phase) => (
+                  <StepperRow
+                    key={phase.key}
+                    label={phase.label}
+                    value={draft.phaseDurations[phase.key] ?? phase.durationSec}
+                    min={minValue}
+                    max={120}
+                    step={stepSize}
+                    palette={palette}
+                    suffix=" sec"
+                    onChange={(nextValue) =>
+                      setDraft((c) => ({
+                        ...c,
+                        phaseDurations: {
+                          ...c.phaseDurations,
+                          [phase.key]: nextValue,
+                        },
+                      }))
+                    }
+                  />
+                ))}
+              </View>
+            )}
           </ScrollView>
-        </View>
-      </View>
+        </Pressable>
+      </Pressable>
     </Modal>
   );
 }
+
+const styles = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+  },
+  dragHandleContainer: {
+    alignItems: 'center',
+    paddingTop: spacing.md,
+    paddingBottom: spacing.sm,
+  },
+  dragHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    opacity: 0.4,
+  },
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+  },
+  sectionLabel: {
+    fontSize: 15,
+    ...typography.medium,
+    marginBottom: spacing.sm,
+    marginTop: spacing.sm,
+  },
+  chipRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginBottom: spacing.md,
+    flexWrap: 'wrap',
+  },
+  chip: {
+    height: 36,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  chipText: {
+    fontSize: 14,
+    ...typography.medium,
+  },
+  volumeRow: {
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+  },
+  volumeLabel: {
+    fontSize: 15,
+    ...typography.medium,
+    marginBottom: spacing.xs,
+  },
+  volumeChipRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+  },
+  volumeChip: {
+    height: 32,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.pill,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  volumeChipText: {
+    fontSize: 13,
+    ...typography.medium,
+  },
+  expandableHeader: {
+    paddingVertical: spacing.md,
+  },
+  expandableText: {
+    fontSize: 14,
+    ...typography.medium,
+  },
+});
