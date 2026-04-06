@@ -552,6 +552,26 @@ function WindDownGfx() {
     { value: 0, duration: 0 }, { value: 0.55, duration: 975 }, { value: 0.10, duration: 1300 },
     { value: 0.38, duration: 1950 }, { value: 0.04, duration: 1300 }, { value: 0, duration: 975 },
   ], 3400);
+  const ws6o = useKeyframeLoop([
+    { value: 0, duration: 0 }, { value: 0.60, duration: 400 }, { value: 0, duration: 600 },
+    { value: 0.35, duration: 900 }, { value: 0.05, duration: 700 }, { value: 0, duration: 700 },
+  ], 800);
+  const ws7o = useKeyframeLoop([
+    { value: 0, duration: 0 }, { value: 0.48, duration: 750 }, { value: 0.08, duration: 1000 },
+    { value: 0.32, duration: 1500 }, { value: 0.03, duration: 1000 }, { value: 0, duration: 750 },
+  ], 1800);
+  const ws8o = useKeyframeLoop([
+    { value: 0, duration: 0 }, { value: 0.70, duration: 280 }, { value: 0, duration: 420 },
+    { value: 0.45, duration: 700 }, { value: 0.08, duration: 700 }, { value: 0, duration: 700 },
+  ], 2800);
+  const ws9o = useKeyframeLoop([
+    { value: 0, duration: 0 }, { value: 0.42, duration: 900 }, { value: 0.06, duration: 1200 },
+    { value: 0.30, duration: 1800 }, { value: 0.02, duration: 1200 }, { value: 0, duration: 900 },
+  ], 4200);
+  const ws10o = useKeyframeLoop([
+    { value: 0, duration: 0 }, { value: 0.58, duration: 350 }, { value: 0, duration: 520 },
+    { value: 0.38, duration: 870 }, { value: 0.04, duration: 870 }, { value: 0, duration: 870 },
+  ], 1500);
 
   // Reflection — quiet
   const pilS = useAlternate(0.94, 1.06, 9000);
@@ -576,6 +596,11 @@ function WindDownGfx() {
   const ws3Style = useAnimatedStyle(() => ({ opacity: ws3o.value }));
   const ws4Style = useAnimatedStyle(() => ({ opacity: ws4o.value }));
   const ws5Style = useAnimatedStyle(() => ({ opacity: ws5o.value }));
+  const ws6Style = useAnimatedStyle(() => ({ opacity: ws6o.value }));
+  const ws7Style = useAnimatedStyle(() => ({ opacity: ws7o.value }));
+  const ws8Style = useAnimatedStyle(() => ({ opacity: ws8o.value }));
+  const ws9Style = useAnimatedStyle(() => ({ opacity: ws9o.value }));
+  const ws10Style = useAnimatedStyle(() => ({ opacity: ws10o.value }));
   const pilStyle = useAnimatedStyle(() => ({ transform: [{ scaleY: pilS.value }], opacity: pilO.value }));
   const sh1Style = useAnimatedStyle(() => ({ transform: [{ translateX: sh1tx.value }, { scaleX: sh1sx.value }], opacity: sh1o.value }));
   const sh2Style = useAnimatedStyle(() => ({ transform: [{ translateX: sh2tx.value }, { scaleX: sh2sx.value }], opacity: sh2o.value }));
@@ -620,19 +645,19 @@ function WindDownGfx() {
         start={{ x: 0, y: 0.5 }} end={{ x: 1, y: 0.5 }}
         style={{ position: 'absolute', width: CW - 24, height: 1, left: 12, bottom: 54, borderRadius: 1 }}
       />
-      {/* Halo — 12 concentric circles, 8px steps, for smooth radial glow */}
-      <AnimatedView style={[{ position: 'absolute', width: 148, height: 148, borderRadius: 74, right: 0, top: -22, backgroundColor: 'rgba(254,220,151,0.004)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 140, height: 140, borderRadius: 70, right: 4, top: -18, backgroundColor: 'rgba(254,220,151,0.006)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 132, height: 132, borderRadius: 66, right: 8, top: -14, backgroundColor: 'rgba(254,220,151,0.008)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 124, height: 124, borderRadius: 62, right: 12, top: -10, backgroundColor: 'rgba(254,220,151,0.009)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 116, height: 116, borderRadius: 58, right: 16, top: -6, backgroundColor: 'rgba(254,220,151,0.010)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 108, height: 108, borderRadius: 54, right: 20, top: -2, backgroundColor: 'rgba(254,220,151,0.011)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 100, height: 100, borderRadius: 50, right: 24, top: 2, backgroundColor: 'rgba(254,220,151,0.013)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 90, height: 90, borderRadius: 45, right: 29, top: 7, backgroundColor: 'rgba(254,220,151,0.016)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 34, top: 12, backgroundColor: 'rgba(254,220,151,0.019)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 70, height: 70, borderRadius: 35, right: 39, top: 17, backgroundColor: 'rgba(254,220,151,0.022)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 60, height: 60, borderRadius: 30, right: 44, top: 22, backgroundColor: 'rgba(254,220,151,0.026)' }, mhStyle]} />
-      <AnimatedView style={[{ position: 'absolute', width: 50, height: 50, borderRadius: 25, right: 49, top: 27, backgroundColor: 'rgba(254,220,151,0.030)' }, mhStyle]} />
+      {/* Halo — 12 concentric circles, even 0.003 opacity steps, smooth color gradient */}
+      <AnimatedView style={[{ position: 'absolute', width: 148, height: 148, borderRadius: 74, right: 0, top: -22, backgroundColor: 'rgba(255,240,212,0.003)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 140, height: 140, borderRadius: 70, right: 4, top: -18, backgroundColor: 'rgba(255,241,214,0.006)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 132, height: 132, borderRadius: 66, right: 8, top: -14, backgroundColor: 'rgba(255,242,216,0.009)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 124, height: 124, borderRadius: 62, right: 12, top: -10, backgroundColor: 'rgba(255,243,218,0.012)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 116, height: 116, borderRadius: 58, right: 16, top: -6, backgroundColor: 'rgba(255,244,220,0.015)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 108, height: 108, borderRadius: 54, right: 20, top: -2, backgroundColor: 'rgba(255,245,222,0.018)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 100, height: 100, borderRadius: 50, right: 24, top: 2, backgroundColor: 'rgba(255,246,224,0.021)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 90, height: 90, borderRadius: 45, right: 29, top: 7, backgroundColor: 'rgba(255,247,226,0.024)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 80, height: 80, borderRadius: 40, right: 34, top: 12, backgroundColor: 'rgba(255,248,228,0.027)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 70, height: 70, borderRadius: 35, right: 39, top: 17, backgroundColor: 'rgba(255,249,230,0.030)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 60, height: 60, borderRadius: 30, right: 44, top: 22, backgroundColor: 'rgba(255,250,232,0.033)' }, mhStyle]} />
+      <AnimatedView style={[{ position: 'absolute', width: 50, height: 50, borderRadius: 25, right: 49, top: 27, backgroundColor: 'rgba(255,251,234,0.036)' }, mhStyle]} />
       {/* Moon — crescent via gradient direction */}
       <AnimatedGradient
         colors={[
@@ -659,7 +684,12 @@ function WindDownGfx() {
       <AnimatedView style={[{ position: 'absolute', width: 2, height: 2, borderRadius: 1, left: 148, top: 22, backgroundColor: 'rgba(255,241,224,0.70)' }, ws3Style]} />
       <AnimatedView style={[{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: 0.75, left: 214, top: 12, backgroundColor: 'rgba(235,240,255,0.56)' }, ws4Style]} />
       <AnimatedView style={[{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: 0.75, left: 70, top: 36, backgroundColor: 'rgba(255,241,224,0.42)' }, ws5Style]} />
-      {/* Fix 1: Reflection aligned under moon center */}
+      <AnimatedView style={[{ position: 'absolute', width: 2, height: 2, borderRadius: 1, left: 180, top: 8, backgroundColor: 'rgba(235,240,255,0.55)' }, ws6Style]} />
+      <AnimatedView style={[{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: 0.75, left: 250, top: 20, backgroundColor: 'rgba(255,241,224,0.48)' }, ws7Style]} />
+      <AnimatedView style={[{ position: 'absolute', width: 2, height: 2, borderRadius: 1, left: 55, top: 42, backgroundColor: 'rgba(235,240,255,0.45)' }, ws8Style]} />
+      <AnimatedView style={[{ position: 'absolute', width: 1.5, height: 1.5, borderRadius: 0.75, left: 115, top: 6, backgroundColor: 'rgba(255,241,224,0.38)' }, ws9Style]} />
+      <AnimatedView style={[{ position: 'absolute', width: 2, height: 2, borderRadius: 1, left: 200, top: 32, backgroundColor: 'rgba(235,240,255,0.50)' }, ws10Style]} />
+      {/* Reflection aligned under moon center */}
       <AnimatedGradient
         colors={['rgba(255,224,170,0.14)', 'rgba(255,224,170,0.06)', 'transparent']}
         style={[{ position: 'absolute', width: 4, height: 54, borderRadius: 2, left: moonCenterX - 2, bottom: 12 }, pilStyle]}
@@ -926,98 +956,145 @@ function _WindDownGfxOld() {
 
 function SharpenGfx() {
   const CW = SCREEN_W - 40;
+  const H = CARD_H;
+  const base = H + 5;
 
-  // sh-atmo: translate(5,0→-5,0) + scale 0.96→1.04, opacity 0.6→1, 16s
-  const atS = useAlternate(0.96, 1.04, 16000);
-  const atO = useAlternate(0.6, 1, 16000);
+  // Facet light — animated opacity on the SVG fills
+  const leftFacetO = useAlternate(0.28, 0.38, 12000);
+  const rightFacetO = useAlternate(0.20, 0.32, 15000);
 
-  // Beams
-  const b1tx = useAlternate(-3, 3, 9000);
-  const b1sy = useAlternate(0.96, 1.04, 9000);
-  const b1o = useAlternate(0.35, 0.9, 9000);
+  // Specular glint — travels down the left ridge as a capsule
+  const glintPos = useAlternate(0.05, 0.85, 8000);
+  const glintO = useAlternate(0.25, 0.62, 8000);
 
-  const b2tx = useAlternate(2, -2, 12000);
-  const b2o = useAlternate(0.25, 0.75, 12000);
+  // Edge sparkles
+  const sp1 = useAlternate(0, 0.75, 3400);
+  const sp2 = useAlternate(0.65, 0, 4800, 1200);
 
-  const b3tx = useAlternate(-2, 2, 10000);
-  const b3o = useAlternate(0.2, 0.65, 10000);
+  const leftFacetProps = useAnimatedProps(() => ({ opacity: leftFacetO.value }));
+  const rightFacetProps = useAnimatedProps(() => ({ opacity: rightFacetO.value }));
 
-  const b4tx = useAlternate(1, -2, 14000);
-  const b4o = useAlternate(0.15, 0.55, 14000);
+  // C. Glint — pre-compute ridge geometry for worklet
+  const _ridgeAngle = Math.atan2(base - 12, CW * 0.42 - CW * 0.68);
+  const _ridgeAngleDeg = (_ridgeAngle * 180) / Math.PI;
+  const _ridgeLen = Math.sqrt(Math.pow(CW * 0.68 - CW * 0.42, 2) + Math.pow(12 - base, 2));
+  const _ridgeCos = Math.cos(_ridgeAngle);
+  const _ridgeSin = Math.sin(_ridgeAngle);
+  const _peakX = CW * 0.68;
+  const _peakY = 12;
 
-  const b5tx = useAlternate(-1, 1, 11000);
-  const b5o = useAlternate(0.1, 0.4, 11000);
+  const glintStyle = useAnimatedStyle(() => {
+    const travel = glintPos.value * _ridgeLen;
+    return {
+      left: _peakX + _ridgeCos * travel - 7,
+      top: _peakY + _ridgeSin * travel - 1,
+      opacity: glintO.value,
+    };
+  });
 
-  // Spectral edge
-  const spO = useAlternate(0.2, 0.7, 9000);
-  const spTx = useAlternate(-1, 1, 9000);
+  const sp1Style = useAnimatedStyle(() => ({ opacity: sp1.value }));
+  const sp2Style = useAnimatedStyle(() => ({ opacity: sp2.value }));
 
-  // Refraction lines
-  const r1o = useAlternate(0.2, 0.75, 10000);
-  const r1tx = useAlternate(-6, 6, 10000);
-  const r2o = useAlternate(0.15, 0.6, 13000, 3000);
-  const r2tx = useAlternate(4, -4, 13000, 3000);
-
-  // Focal diamond
-  const fS = useAlternate(0.85, 1.15, 5500);
-  const fTy = useAlternate(3, -3, 5500);
-  const fO = useAlternate(0.45, 1, 5500);
-
-  // Secondary focal
-  const f2S = useAlternate(1.1, 0.85, 5500);
-  const f2Ty = useAlternate(-2, 4, 5500);
-  const f2O = useAlternate(0.65, 0.15, 5500);
-
-  // Mist
-  const mTy = useAlternate(2, -3, 14000);
-  const mO = useAlternate(0.3, 0.8, 14000);
-
-  const atStyle = useAnimatedStyle(() => ({ transform: [{ scale: atS.value }], opacity: atO.value }));
-  const b1Style = useAnimatedStyle(() => ({ transform: [{ translateX: b1tx.value }, { scaleY: b1sy.value }], opacity: b1o.value }));
-  const b2Style = useAnimatedStyle(() => ({ transform: [{ translateX: b2tx.value }], opacity: b2o.value }));
-  const b3Style = useAnimatedStyle(() => ({ transform: [{ translateX: b3tx.value }], opacity: b3o.value }));
-  const b4Style = useAnimatedStyle(() => ({ transform: [{ translateX: b4tx.value }], opacity: b4o.value }));
-  const b5Style = useAnimatedStyle(() => ({ transform: [{ translateX: b5tx.value }], opacity: b5o.value }));
-  const spStyle = useAnimatedStyle(() => ({ transform: [{ translateX: spTx.value }], opacity: spO.value }));
-  const r1Style = useAnimatedStyle(() => ({ transform: [{ rotate: '-16deg' }, { translateX: r1tx.value }], opacity: r1o.value }));
-  const r2Style = useAnimatedStyle(() => ({ transform: [{ rotate: '-10deg' }, { translateX: r2tx.value }], opacity: r2o.value }));
-  const fStyle = useAnimatedStyle(() => ({ transform: [{ scale: fS.value }, { translateY: fTy.value }], opacity: fO.value }));
-  const f2Style = useAnimatedStyle(() => ({ transform: [{ scale: f2S.value }, { translateY: f2Ty.value }], opacity: f2O.value }));
-  const mStyle = useAnimatedStyle(() => ({ transform: [{ translateY: mTy.value }], opacity: mO.value }));
+  // A. Geometry honors left 40% quiet zone
+  const m1 = { peak: { x: CW * 0.68, y: 12 }, left: { x: CW * 0.42, y: base }, right: { x: CW * 0.98, y: base } };
+  const m2 = { peak: { x: CW * 0.10, y: 54 }, left: { x: CW * -0.08, y: base }, right: { x: CW * 0.26, y: base } };
+  const m3 = { peak: { x: CW * 0.84, y: 48 }, left: { x: CW * 0.68, y: base }, right: { x: CW * 1.04, y: base } };
 
   return (
     <View style={StyleSheet.absoluteFill}>
-      {/* Teal atmospheric field */}
-      <AnimatedView style={[{ position: 'absolute', width: 260, height: 260, borderRadius: 130, right: -70, top: -60, backgroundColor: 'rgba(40,102,110,0.12)' }, atStyle]} />
+      <Svg width={CW} height={H} style={StyleSheet.absoluteFill}>
+        {/* Back peak — left, deeply recessed, no ridge stroke */}
+        <Path
+          d={`M ${m2.left.x} ${m2.left.y} L ${m2.peak.x} ${m2.peak.y} L ${m2.right.x} ${m2.right.y} Z`}
+          fill="rgba(20,62,72,0.18)"
+        />
+        <Path
+          d={`M ${m2.peak.x} ${m2.peak.y} L ${m2.right.x} ${m2.right.y} L ${m2.peak.x} ${m2.right.y} Z`}
+          fill="rgba(28,78,88,0.08)"
+        />
 
-      {/* Grid lines */}
-      <View style={{ position: 'absolute', width: '100%', height: 1, top: '33%', left: 0, backgroundColor: 'rgba(58,154,160,0.04)' }} />
-      <View style={{ position: 'absolute', width: '100%', height: 1, top: '55%', left: 0, backgroundColor: 'rgba(58,154,160,0.03)' }} />
-      <View style={{ position: 'absolute', width: '100%', height: 1, top: '77%', left: 0, backgroundColor: 'rgba(58,154,160,0.02)' }} />
+        {/* Back peak — right, recessed */}
+        <Path
+          d={`M ${m3.left.x} ${m3.left.y} L ${m3.peak.x} ${m3.peak.y} L ${m3.right.x} ${m3.right.y} Z`}
+          fill="rgba(18,58,68,0.15)"
+        />
+        <Path
+          d={`M ${m3.peak.x} ${m3.peak.y} L ${m3.left.x} ${m3.left.y}`}
+          stroke="rgba(110,180,175,0.10)"
+          strokeWidth={0.6}
+          fill="none"
+        />
 
-      {/* Mist */}
-      <AnimatedView style={[{ position: 'absolute', width: '100%', height: 70, borderRadius: 35, left: 0, bottom: -25, backgroundColor: 'rgba(124,152,133,0.06)' }, mStyle]} />
+        {/* Main mountain — dominant crystal */}
+        {/* Left facet — shadow */}
+        <AnimatedPath
+          d={`M ${m1.left.x} ${m1.left.y} L ${m1.peak.x} ${m1.peak.y} L ${m1.peak.x} ${m1.left.y} Z`}
+          fill="rgba(28,85,95,1)"
+          animatedProps={leftFacetProps}
+        />
+        {/* Right facet — light */}
+        <AnimatedPath
+          d={`M ${m1.peak.x} ${m1.peak.y} L ${m1.right.x} ${m1.right.y} L ${m1.peak.x} ${m1.right.y} Z`}
+          fill="rgba(42,120,130,1)"
+          animatedProps={rightFacetProps}
+        />
 
-      {/* Beams */}
-      <AnimatedView style={[{ position: 'absolute', width: 36, height: 240, borderRadius: 999, left: '53%', top: -45, backgroundColor: 'rgba(58,154,160,0.15)' }, b1Style]} />
-      <AnimatedView style={[{ position: 'absolute', width: 22, height: 210, borderRadius: 999, left: '39%', top: -35, backgroundColor: 'rgba(48,130,140,0.10)' }, b2Style]} />
-      <AnimatedView style={[{ position: 'absolute', width: 14, height: 180, borderRadius: 999, left: '25%', top: -20, backgroundColor: 'rgba(40,102,110,0.08)' }, b3Style]} />
-      <AnimatedView style={[{ position: 'absolute', width: 10, height: 160, borderRadius: 999, left: '67%', top: -10, backgroundColor: 'rgba(58,154,160,0.06)' }, b4Style]} />
-      <AnimatedView style={[{ position: 'absolute', width: 6, height: 140, borderRadius: 999, left: '16%', top: 0, backgroundColor: 'rgba(40,102,110,0.04)' }, b5Style]} />
+        {/* B. Quieter ridge edges */}
+        <Path
+          d={`M ${m1.peak.x} ${m1.peak.y} L ${m1.left.x} ${m1.left.y}`}
+          stroke="rgba(185,242,238,0.34)"
+          strokeWidth={1.1}
+          fill="none"
+        />
+        <Path
+          d={`M ${m1.peak.x} ${m1.peak.y} L ${m1.right.x} ${m1.right.y}`}
+          stroke="rgba(155,228,222,0.18)"
+          strokeWidth={0.85}
+          fill="none"
+        />
+        <Path
+          d={`M ${m1.peak.x} ${m1.peak.y} L ${m1.peak.x} ${m1.left.y}`}
+          stroke="rgba(130,210,205,0.10)"
+          strokeWidth={0.55}
+          fill="none"
+        />
 
-      {/* Spectral edge */}
-      <AnimatedView style={[{ position: 'absolute', width: 2, height: 120, borderRadius: 1, left: '56%', top: -10, backgroundColor: 'rgba(120,200,255,0.06)' }, spStyle]} />
+        {/* Peak specular — pinpoint */}
+        <Circle cx={m1.peak.x} cy={m1.peak.y + 1.5} r={1.5} fill="rgba(220,255,250,0.45)" />
+        <Circle cx={m1.peak.x} cy={m1.peak.y + 1} r={0.7} fill="rgba(245,255,252,0.8)" />
+      </Svg>
 
-      {/* Refraction lines */}
-      <AnimatedView style={[{ position: 'absolute', width: '55%', height: 2, right: -10, top: 50, backgroundColor: 'rgba(254,220,151,0.14)' }, r1Style]} />
-      <AnimatedView style={[{ position: 'absolute', width: '40%', height: 1.5, right: 5, top: 74, backgroundColor: 'rgba(232,200,112,0.10)' }, r2Style]} />
+      {/* Traveling glint — feathered streak aligned to ridge */}
+      <AnimatedView style={[{ position: 'absolute', transform: [{ rotate: `${_ridgeAngleDeg}deg` }] }, glintStyle]}>
+        <AnimatedGradient
+          colors={['transparent', 'rgba(220,255,250,0.55)', 'rgba(240,255,252,0.7)', 'rgba(220,255,250,0.55)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={{ width: 14, height: 2, borderRadius: 1 }}
+        />
+      </AnimatedView>
 
-      {/* Diamond focal point */}
-      <AnimatedView style={[{ position: 'absolute', width: 42, height: 42, borderRadius: 21, left: '50%', marginLeft: -21, top: 46, backgroundColor: 'rgba(254,220,151,0.25)' }, fStyle]} />
-      {/* Focal core */}
-      <AnimatedView style={[{ position: 'absolute', width: 12, height: 12, borderRadius: 6, left: '50%', marginLeft: -6, top: 61, backgroundColor: 'rgba(255,240,200,0.50)' }, fStyle]} />
-      {/* Secondary focal */}
-      <AnimatedView style={[{ position: 'absolute', width: 16, height: 16, borderRadius: 8, left: '33%', top: 78, backgroundColor: 'rgba(232,200,112,0.20)' }, f2Style]} />
+      {/* Edge sparkles — positioned on ridges */}
+      <AnimatedView style={[{ position: 'absolute', width: 2.5, height: 2.5, borderRadius: 1.25, left: m1.peak.x - 14, top: m1.peak.y + 50, backgroundColor: 'rgba(210,250,245,0.85)' }, sp1Style]} />
+      <AnimatedView style={[{ position: 'absolute', width: 2, height: 2, borderRadius: 1, left: m1.peak.x + 14, top: m1.peak.y + 55, backgroundColor: 'rgba(190,240,235,0.75)' }, sp2Style]} />
+
+      {/* D. Ground plane — truly stays out of text field */}
+      <AnimatedGradient
+        colors={['transparent', 'transparent', 'rgba(110,180,175,0.06)']}
+        locations={[0, 0.55, 1]}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{ position: 'absolute', width: CW, height: 1, left: 0, bottom: 20, borderRadius: 1 }}
+      />
+
+      {/* B + E. Text protection — above art, below text */}
+      <AnimatedGradient
+        colors={['rgba(4,30,50,0.26)', 'rgba(4,30,50,0.12)', 'transparent']}
+        start={{ x: 0, y: 0.5 }}
+        end={{ x: 0.42, y: 0.5 }}
+        style={StyleSheet.absoluteFill}
+        pointerEvents="none"
+      />
     </View>
   );
 }
